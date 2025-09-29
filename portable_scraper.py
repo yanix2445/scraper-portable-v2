@@ -591,7 +591,7 @@ def main():
                 saved_to_db += 1
         print(f"💾 {saved_to_db} personne(s) sauvegardée(s) en base")
 
-    # Sauvegarde locale JSON avec nom logique
+    # Sauvegarde locale JSON avec structure organisée par date
     from urllib.parse import urlparse
     import re
 
@@ -603,11 +603,24 @@ def main():
 
     # Date et heure formatées
     now = datetime.now()
-    date_str = now.strftime("%d-%m-%Y_%Hh%M")
+    year = now.strftime("%Y")
+    month = now.strftime("%m")  # 09
+    month_name = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"][now.month]
+    month_folder = f"{month}-{month_name}"  # 09-Septembre
+    day = now.strftime("%d")
+    time_str = now.strftime("%Hh%M")
 
-    # Nom de fichier logique avec chemin choisi
-    filename = f"scraping_{site_name}_{date_str}.json"
-    output_file = os.path.join(config['save_dir'], filename)
+    # Créer la structure de dossiers : saves/2025/09-Septembre/29/
+    base_save_dir = os.path.join(config['save_dir'], "saves")
+    date_dir = os.path.join(base_save_dir, year, month_folder, day)
+
+    # Créer les dossiers s'ils n'existent pas
+    os.makedirs(date_dir, exist_ok=True)
+
+    # Nom de fichier avec horodatage
+    filename = f"{time_str}_{site_name}_scraping.json"
+    output_file = os.path.join(date_dir, filename)
 
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump([asdict(p) for p in persons], f, ensure_ascii=False, indent=2)

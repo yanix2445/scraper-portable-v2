@@ -1,5 +1,7 @@
 # 🕷️ Scraper Portable - Guide d'Installation et d'Utilisation
 
+⚠️ **Important pour utilisateurs macOS** : Vous devez utiliser `source setup_venv.sh` avant de lancer le script sur macOS avec Python 3.13+ (Homebrew).
+
 ## 📦 Contenu du Package
 
 - `portable_scraper.py` - Script principal auto-installable
@@ -39,18 +41,26 @@ DEFAULT_SAVE_DIR=.
 
 ⚠️ **Important** : Remplacez les valeurs dans votre fichier `.env` par vos vraies informations Supabase.
 
-### 1.2. Environnement Virtuel (Recommandé pour Python 3.13+)
+### 1.2. Environnement Virtuel (REQUIS pour macOS)
 
-Si vous avez Python 3.13+ installé via Homebrew sur macOS, utilisez un environnement virtuel :
+⚠️ **Important pour macOS** : Si vous avez Python 3.13+ installé via Homebrew, l'environnement virtuel est **obligatoire** pour que le script fonctionne correctement.
 
 ```bash
-# Option 1: Script automatique
+# REQUIS sur macOS - Script automatique
 source setup_venv.sh
 
-# Option 2: Manuel
+# Puis lancez le script
+python portable_scraper.py
+```
+
+**Alternative manuelle :**
+```bash
 python3 -m venv venv
 source venv/bin/activate
+python portable_scraper.py
 ```
+
+💡 **Pourquoi ?** Python 3.13+ sur Homebrew utilise PEP 668 qui empêche l'installation de packages système. L'environnement virtuel contourne cette limitation.
 
 ### 2. Configuration de la Base de Données
 
@@ -88,12 +98,26 @@ source venv/bin/activate
 
 ### Lancement du Script
 
+**Sur macOS (obligatoire) :**
 ```bash
-# Si vous utilisez un environnement virtuel (recommandé)
-python portable_scraper.py
+# 1. Activez l'environnement virtuel
+source setup_venv.sh
 
-# Sinon avec Python 3 global
+# 2. Lancez le script
+python portable_scraper.py
+```
+
+**Sur Linux/Windows :**
+```bash
+# Tentative directe (peut fonctionner)
 python3 portable_scraper.py
+
+# Si échec, utilisez un environnement virtuel
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# ou
+venv\Scripts\activate     # Windows
+python portable_scraper.py
 ```
 
 ### Configuration Interactive
@@ -205,10 +229,29 @@ Les données sont automatiquement sauvées dans votre table `personnes` avec :
 
 ### Fichier JSON Local
 
-Un fichier JSON est également créé avec un nom logique :
+Les fichiers JSON sont organisés dans une structure de dossiers logique par date :
+
 ```
-scraping_[nom-du-site]_[date]_[heure].json
+saves/
+├── 2025/
+│   ├── 09-Septembre/
+│   │   ├── 29/
+│   │   │   ├── 14h30_example_com_scraping.json
+│   │   │   ├── 15h45_zyteck_fr_scraping.json
+│   │   │   └── ...
+│   │   └── 30/
+│   │       └── ...
+│   └── 10-Octobre/
+│       └── ...
+└── ...
 ```
+
+**Format des fichiers** : `[heure]_[nom-du-site]_scraping.json`
+
+Cette organisation permet de :
+- ✅ Retrouver facilement les sauvegardes par date
+- ✅ Éviter l'encombrement du répertoire principal
+- ✅ Conserver un historique organisé chronologiquement
 
 ## ⚙️ Fonctionnalités
 
@@ -243,6 +286,15 @@ python3 --version
 ```
 
 ### Problème : "Échec installation dépendances"
+
+**Sur macOS :**
+```bash
+# Solution recommandée : utilisez l'environnement virtuel
+source setup_venv.sh
+python portable_scraper.py
+```
+
+**Sur autres systèmes :**
 ```bash
 # Installez pip manuellement
 python -m ensurepip --upgrade
