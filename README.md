@@ -218,8 +218,7 @@ Utiliser cette configuration ? [O/n]:
 ### Base de Données Supabase
 
 Les données sont automatiquement sauvées dans votre table `personnes` avec :
-- **nom** : Nom de famille
-- **prenom** : Prénom
+- **nom** : Nom complet de la personne (ex: "Marie Dupont", "Jean-Pierre Martin")
 - **email** : Adresse email
 - **telephone** : Numéro de téléphone formaté
 - **poste** : Fonction/poste

@@ -47,7 +47,7 @@ Before first run, execute `recreate_table.sql` in your Supabase SQL Editor to cr
 
 **Data Models** (`PersonInfo` dataclass)
 - Structured representation of extracted contact information
-- Fields: nom, prenom, email, telephone, poste, source_url, confidence, created_at
+- Fields: nom (nom complet), email, telephone, poste, source_url, confidence, created_at
 
 **Database Integration** (`SimpleSupabaseManager`)
 - Simplified Supabase client wrapper

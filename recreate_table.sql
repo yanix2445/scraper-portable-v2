@@ -6,8 +6,7 @@ DROP TABLE IF EXISTS personnes;
 
 CREATE TABLE personnes (
     id SERIAL PRIMARY KEY,
-    nom TEXT,
-    prenom TEXT,
+    nom TEXT,  -- Nom complet (ex: "Marie Dupont", "Jean-Pierre Martin")
     email TEXT,
     telephone TEXT,
     poste TEXT,
