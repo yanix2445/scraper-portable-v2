@@ -4,15 +4,53 @@
 
 - `portable_scraper.py` - Script principal auto-installable
 - `recreate_table.sql` - Script de création de la base de données
+- `.env.example` - Fichier de configuration exemple
+- `setup_venv.sh` - Script d'installation d'environnement virtuel
 - `README.md` - Ce guide d'installation
 
 ## 🚀 Installation Rapide
 
 ### 1. Prérequis
 
-- **Python 3.7+** (vérifiez avec `python --version`)
+- **Python 3.7+** (vérifiez avec `python --version` ou `python3 --version`)
 - **Connexion Internet** pour l'installation automatique des dépendances
 - **Compte Supabase** (gratuit sur [supabase.com](https://supabase.com))
+
+### 1.1. Configuration Automatique (.env)
+
+Pour éviter de retaper vos informations à chaque fois :
+
+```bash
+# Copiez le fichier exemple
+cp .env.example .env
+
+# Éditez le fichier .env avec vos vraies valeurs
+nano .env
+```
+
+**Le fichier .env.example contient déjà un exemple complet :**
+```env
+SUPABASE_URL=https://eeqxziwpykocnrbtmxiy.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+DEFAULT_MAX_PAGES=50
+DEFAULT_SAVE_DIR=.
+# DEFAULT_URL=https://example.com
+```
+
+⚠️ **Important** : Remplacez les valeurs dans votre fichier `.env` par vos vraies informations Supabase.
+
+### 1.2. Environnement Virtuel (Recommandé pour Python 3.13+)
+
+Si vous avez Python 3.13+ installé via Homebrew sur macOS, utilisez un environnement virtuel :
+
+```bash
+# Option 1: Script automatique
+source setup_venv.sh
+
+# Option 2: Manuel
+python3 -m venv venv
+source venv/bin/activate
+```
 
 ### 2. Configuration de la Base de Données
 
@@ -44,15 +82,41 @@
    - **URL** : `https://votre-projet.supabase.co`
    - **Clé anon** : `eyJhbGciOiJIUz...` (clé publique)
 
+💡 **Conseil** : Copiez ces valeurs directement dans votre fichier `.env` pour gagner du temps !
+
 ## 🎯 Utilisation
 
 ### Lancement du Script
 
 ```bash
+# Si vous utilisez un environnement virtuel (recommandé)
 python portable_scraper.py
+
+# Sinon avec Python 3 global
+python3 portable_scraper.py
 ```
 
 ### Configuration Interactive
+
+#### Avec fichier .env (Recommandé)
+
+Si vous avez configuré un fichier `.env`, le script vous proposera :
+
+1. **🔗 URL du site à scraper [URL par défaut si configurée]**
+   ```
+   🔗 URL du site à scraper [https://example.com]:
+   Appuyez sur Entrée pour utiliser la valeur par défaut
+   ```
+
+2. **🗄️ Configuration Supabase (depuis .env)**
+   ```
+   🗄️ Configuration Supabase (depuis .env):
+   URL: https://eeqxziwpykocnrbtmxiy.supabase.co
+   Clé: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   Utiliser cette configuration ? [O/n]:
+   ```
+
+#### Sans fichier .env
 
 Le script vous demandera :
 
@@ -68,8 +132,8 @@ Le script vous demandera :
 
 3. **🗄️ Configuration Supabase**
    ```
-   URL Supabase : https://votre-projet.supabase.co
-   Clé Supabase : eyJhbGciOiJIUz...
+   URL Supabase : https://eeqxziwpykocnrbtmxiy.supabase.co
+   Clé Supabase : eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
 
 4. **📁 Dossier de sauvegarde**
@@ -100,9 +164,10 @@ Le script vous demandera :
 ========================================
 🔗 URL du site à scraper: https://example.com
 📄 Nombre max de pages [50]: 20
-🗄️ Configuration Supabase:
-URL Supabase: https://votre-projet.supabase.co
-Clé Supabase: eyJhbGciOiJIUz...
+🗄️ Configuration Supabase (depuis .env):
+URL: https://eeqxziwpykocnrbtmxiy.supabase.co
+Clé: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Utiliser cette configuration ? [O/n]:
 ✅ Connexion Supabase réussie
 
 🕷️ Début du crawling de https://example.com

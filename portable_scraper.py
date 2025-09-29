@@ -29,11 +29,25 @@ def check_python_version():
 def install_package(package):
     """Installe un package Python"""
     try:
+        # Essayer d'abord installation normale
         subprocess.check_call([sys.executable, "-m", "pip", "install", package],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
-        return False
+        # Essayer avec --break-system-packages --user pour Python 3.13+ sur macOS/Homebrew
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package,
+                                "--break-system-packages", "--user"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            # Essayer juste --user
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--user"],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except subprocess.CalledProcessError:
+                return False
 
 def ensure_dependencies():
     """S'assure que toutes les dépendances sont installées"""
@@ -73,8 +87,31 @@ def ensure_dependencies():
                 print(f"  ❌ Échec installation {package}")
                 return False
 
+        # Après installation, forcer le rechargement des modules
+        print("\n🔄 Vérification post-installation...")
+        for module, package in dependencies.items():
+            try:
+                # Forcer le rechargement si le module était déjà importé
+                if module in sys.modules:
+                    del sys.modules[module]
+
+                if module == 'beautifulsoup4':
+                    import bs4
+                elif module == 'python-dotenv':
+                    import dotenv
+                else:
+                    __import__(module)
+                print(f"  ✅ {module} vérifié")
+            except ImportError:
+                print(f"  ❌ {module} toujours manquant après installation")
+                print(f"  ℹ️  Essayez d'activer un environnement virtuel ou utilisez 'python3 -m venv venv && source venv/bin/activate' avant de relancer")
+                return False
+
     # Vérifier et installer spaCy model
     try:
+        # Forcer le rechargement de spacy si déjà importé
+        if 'spacy' in sys.modules:
+            del sys.modules['spacy']
         import spacy
         try:
             nlp = spacy.load("fr_core_news_sm")
@@ -85,13 +122,32 @@ def ensure_dependencies():
                 print("  ✅ Modèle spaCy anglais")
             except OSError:
                 print("  📥 Installation modèle spaCy français...")
-                if subprocess.call([sys.executable, "-m", "spacy", "download", "fr_core_news_sm"],
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
-                    print("  ✅ Modèle spaCy installé")
+                # Essayer plusieurs méthodes d'installation pour spaCy
+                success = False
+                for args in [
+                    [sys.executable, "-m", "spacy", "download", "fr_core_news_sm"],
+                    [sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl", "--break-system-packages", "--user"],
+                    [sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl", "--user"]
+                ]:
+                    if subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                        success = True
+                        break
+
+                if success:
+                    print("  ✅ Modèle spaCy français installé")
                 else:
                     print("  ⚠️  Échec modèle français, tentative anglais...")
-                    if subprocess.call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                    success = False
+                    for args in [
+                        [sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
+                        [sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl", "--break-system-packages", "--user"],
+                        [sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl", "--user"]
+                    ]:
+                        if subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                            success = True
+                            break
+
+                    if success:
                         print("  ✅ Modèle spaCy anglais installé")
                     else:
                         print("  ❌ Impossible d'installer un modèle spaCy")
@@ -376,30 +432,83 @@ class SimpleScraper:
 
         return all_persons
 
+def load_env_config():
+    """Charge la configuration depuis le fichier .env"""
+    config = {}
+    env_file = ".env"
+
+    if os.path.exists(env_file):
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_file)
+
+            config['supabase_url'] = os.getenv('SUPABASE_URL', '').strip()
+            config['supabase_key'] = os.getenv('SUPABASE_KEY', '').strip()
+            config['default_max_pages'] = int(os.getenv('DEFAULT_MAX_PAGES', '50'))
+            config['default_save_dir'] = os.getenv('DEFAULT_SAVE_DIR', '.').strip()
+            config['default_url'] = os.getenv('DEFAULT_URL', '').strip()
+
+            if config['supabase_url'] and config['supabase_key']:
+                print("✅ Configuration .env trouvée et chargée")
+
+        except Exception as e:
+            print(f"⚠️  Erreur lecture .env: {e}")
+
+    return config
+
 def get_user_config():
     """Interface utilisateur pour la configuration"""
     print("🚀 Scraper Portable - Configuration")
     print("=" * 40)
 
-    # URL
-    url = input("🔗 URL du site à scraper: ").strip()
+    # Charger la config .env
+    env_config = load_env_config()
+
+    # URL avec valeur par défaut du .env
+    default_url = env_config.get('default_url', '')
+    if default_url:
+        url_prompt = f"🔗 URL du site à scraper [{default_url}]: "
+        url = input(url_prompt).strip()
+        if not url:
+            url = default_url
+    else:
+        url = input("🔗 URL du site à scraper: ").strip()
+
     if not url:
         print("❌ URL requise")
         sys.exit(1)
 
-    # Paramètres
+    # Paramètres avec valeur par défaut du .env
+    default_max_pages = env_config.get('default_max_pages', 50)
     try:
-        max_pages = input("📄 Nombre max de pages [50]: ").strip()
-        max_pages = int(max_pages) if max_pages else 50
+        max_pages_input = input(f"📄 Nombre max de pages [{default_max_pages}]: ").strip()
+        max_pages = int(max_pages_input) if max_pages_input else default_max_pages
     except ValueError:
-        max_pages = 50
+        max_pages = default_max_pages
 
-    # Configuration Supabase
-    print("\n🗄️  Configuration Supabase:")
-    supabase_url = input("URL Supabase: ").strip()
-    supabase_key = input("Clé Supabase: ").strip()
+    # Configuration Supabase depuis .env ou saisie manuelle
+    supabase_url = env_config.get('supabase_url', '')
+    supabase_key = env_config.get('supabase_key', '')
 
-    # Choix du répertoire de sauvegarde
+    if supabase_url and supabase_key:
+        print(f"\n🗄️  Configuration Supabase (depuis .env):")
+        print(f"URL: {supabase_url}")
+        print(f"Clé: {supabase_key[:20]}...")
+
+        use_env = input("Utiliser cette configuration ? [O/n]: ").strip().lower()
+        if use_env in ['', 'o', 'oui', 'y', 'yes']:
+            pass  # Garder les valeurs du .env
+        else:
+            print("🗄️  Nouvelle configuration Supabase:")
+            supabase_url = input("URL Supabase: ").strip()
+            supabase_key = input("Clé Supabase: ").strip()
+    else:
+        print("\n🗄️  Configuration Supabase:")
+        supabase_url = input("URL Supabase: ").strip()
+        supabase_key = input("Clé Supabase: ").strip()
+
+    # Choix du répertoire de sauvegarde avec valeur par défaut du .env
+    default_save_dir = env_config.get('default_save_dir', '.')
     print("\n📁 Sauvegarde des résultats:")
     print("1) Répertoire courant (même dossier que le script)")
     print("2) Bureau")
@@ -408,7 +517,7 @@ def get_user_config():
 
     choice = input("Votre choix [1]: ").strip() or "1"
 
-    save_dir = "."  # Par défaut : répertoire courant
+    save_dir = default_save_dir if default_save_dir != '.' else "."
 
     if choice == "2":
         # Bureau
