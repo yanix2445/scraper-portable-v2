@@ -37,6 +37,7 @@ venv.bak/
 
 # Résultats de scraping
 scraping_*.json
+saves/
 *.log
 
 # Fichiers temporaires
