@@ -474,6 +474,15 @@ class IntelligentPersonExtractor:
             "problem solver", "solver", "thinker",
             "detail oriented", "oriented", "driven",
 
+            # Sections de portfolio / Headings
+            "my journey", "journey", "my story", "story",
+            "my work", "my projects", "projects",
+            "my skills", "skills", "my experience",
+            "framer motion", "motion", "live demo", "demo",
+            "years started", "started", "years",
+            "strategy we", "strategy", "launch this", "launch",
+            "get started", "get touch", "lets talk", "let's talk",
+
             # Technologies
             "supabase", "firebase", "database",
             "python", "java", "ruby", "php",
