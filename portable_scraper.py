@@ -737,7 +737,7 @@ class IntelligentPersonExtractor:
                 for ent in doc.ents:
                     if ent.label_ in ("PER", "PERSON") and len(ent.text.strip()) > 2:
                         name = ent.text.strip()
-                        if not any(elem.value == name for elem in names):
+                        if self.is_likely_name(name) and not any(elem.value == name for elem in names):
                             # Calculer la proximité avec les emails/téléphones
                             proximity_bonus = self.calculate_proximity_to_contacts(
                                 ent.start_char, existing_elements
@@ -766,6 +766,7 @@ class IntelligentPersonExtractor:
                 name = match.group().strip()
                 if (
                     len(name) > 3
+                    and self.is_likely_name(name)  # Utiliser le filtre is_likely_name
                     and not any(
                         x.lower() in name.lower() for x in ["lorem", "ipsum", "example"]
                     )
