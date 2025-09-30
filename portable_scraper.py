@@ -463,6 +463,16 @@ class IntelligentPersonExtractor:
             "technicien", "technician", "tech",
             "ingénieur", "engineer", "engineering",
             "consultant", "manager", "director",
+            "designer", "architect", "analyst",
+
+            # Soft skills / Descriptions
+            "collaborative", "team player", "player",
+            "passionate", "creative", "innovative",
+            "experienced", "senior", "junior",
+            "full stack", "fullstack", "front end", "backend",
+            "global mindset", "mindset", "global",
+            "problem solver", "solver", "thinker",
+            "detail oriented", "oriented", "driven",
 
             # Technologies
             "supabase", "firebase", "database",
@@ -601,7 +611,14 @@ class IntelligentPersonExtractor:
         # 2. Extraire emails depuis le texte (fallback)
         for match in self.email_pattern.finditer(text):
             email = match.group()
-            if not any(x in email.lower() for x in ["noreply", "example", "test"]):
+            # Filtrer les emails invalides ou placeholder
+            invalid_patterns = [
+                "noreply", "example", "test", "sample", "demo",
+                "youremail", "your.email", "your_email",
+                "contact@example", "email@example", "name@example",
+                "info@example", "hello@example", "admin@example",
+            ]
+            if not any(x in email.lower() for x in invalid_patterns):
                 # Éviter les doublons avec les balises mailto:
                 if not any(
                     elem.value == email for elem in elements if elem.type == "email"
@@ -978,9 +995,14 @@ class IntelligentPersonExtractor:
 
             # Associer le nom complet le plus proche de l'email
             if names:
-                closest_name = min(
-                    names, key=lambda x: abs(x.position - best_email.position)
-                )
+                # Scorer chaque nom : distance + confiance
+                def name_score(name):
+                    distance = abs(name.position - best_email.position)
+                    # Plus le nom est proche et confiant, meilleur est le score (plus bas)
+                    # Normaliser la distance (diviser par 100) et soustraire la confiance
+                    return (distance / 100) - (name.confidence * 10)
+
+                closest_name = min(names, key=name_score)
                 person.nom = closest_name.value.strip()
                 cluster_score += 0.4
 
