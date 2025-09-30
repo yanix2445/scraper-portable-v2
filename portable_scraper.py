@@ -449,6 +449,36 @@ class IntelligentPersonExtractor:
             "message",
             "subject",
             "objet",
+            "bac",
+            "pro",
+            "recherche",
+            "alternance",
+            "étudiant",
+            "student",
+            "développeur",
+            "developer",
+            "technicien",
+            "ingénieur",
+            "engineer",
+            "supabase",
+            "python",
+            "javascript",
+            "typescript",
+            "react",
+            "nextjs",
+            "docker",
+            "linux",
+            "windows",
+            "macos",
+            "github",
+            "gitlab",
+            "france",
+            "paris",
+            "lyon",
+            "marseille",
+            "code",
+            "bash",
+            "shell",
         }
 
         if any(word in text.lower() for word in avoid_words):
@@ -709,7 +739,7 @@ class IntelligentPersonExtractor:
     def extract_names_with_proximity(self, zone, existing_elements):
         """Extrait les noms en se basant sur la proximité avec emails/téléphones"""
         names = []
-        text = zone.get_text()
+        text = zone.get_text(separator=' ', strip=True)
 
         # D'abord chercher les noms dans les balises mailto: et tel: existantes
         for elem in existing_elements:
