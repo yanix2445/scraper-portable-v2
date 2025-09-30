@@ -887,24 +887,43 @@ class IntelligentPersonExtractor:
         return phone.strip()
 
     def cluster_by_proximity(self, elements):
-        """Groupe les éléments par proximité"""
+        """Groupe les éléments par proximité et confiance"""
         if not elements:
             return []
 
+        # Stratégie intelligente : si une zone contient 1 email + éléments associés,
+        # et que les éléments ont une haute confiance (mailto:, tel:),
+        # on considère qu'ils appartiennent à la même personne
+
+        emails = [e for e in elements if e.type == "email"]
+        phones = [e for e in elements if e.type == "phone"]
+        names = [e for e in elements if e.type == "name"]
+
+        # CAS 1: Une seule personne évidente (1 email unique dans la zone)
+        unique_emails = set(e.value for e in emails)
+        if len(unique_emails) == 1 and emails:
+            # Tout regrouper ensemble - c'est probablement la même personne
+            return [elements]
+
+        # CAS 2: Plusieurs emails ou clustering classique par proximité
         clusters = []
         current_cluster = [elements[0]]
 
         for i in range(1, len(elements)):
             current_elem = elements[i]
-            last_elem = current_cluster[-1]
 
-            # Calculer la distance de proximité
-            position_distance = abs(current_elem.position - last_elem.position)
+            # Vérifier si cet élément doit être ajouté au cluster actuel
+            should_add = False
 
-            # Seuil de proximité adaptatif selon le type
-            max_distance = self.get_proximity_threshold(last_elem, current_elem)
+            for existing_elem in current_cluster:
+                position_distance = abs(current_elem.position - existing_elem.position)
+                max_distance = self.get_proximity_threshold(existing_elem, current_elem)
 
-            if position_distance <= max_distance:
+                if position_distance <= max_distance:
+                    should_add = True
+                    break
+
+            if should_add:
                 current_cluster.append(current_elem)
             else:
                 if len(current_cluster) > 0:
@@ -918,17 +937,24 @@ class IntelligentPersonExtractor:
 
     def get_proximity_threshold(self, elem1, elem2):
         """Calcule le seuil de proximité entre deux éléments"""
-        # Seuils plus larges pour capturer les éléments dispersés dans une même zone
-        if (elem1.type == "email" and elem2.type == "name") or (
-            elem1.type == "name" and elem2.type == "email"
-        ):
-            return 5000  # Caractères - très large pour une même zone de profil
-        elif (elem1.type == "name" and elem2.type == "phone") or (
+        # Seuils adaptatifs selon le type d'éléments
+
+        # Email avec autre élément : proximité modérée
+        if elem1.type == "email" or elem2.type == "email":
+            return 500  # Un email et ses infos associées sont généralement proches
+
+        # Nom et téléphone : peuvent être un peu plus éloignés
+        if (elem1.type == "name" and elem2.type == "phone") or (
             elem1.type == "phone" and elem2.type == "name"
         ):
-            return 5000
-        else:
-            return 5000  # Par défaut, regrouper tous les éléments d'une même zone
+            return 800
+
+        # Deux éléments du même type : très proches
+        if elem1.type == elem2.type:
+            return 300
+
+        # Par défaut
+        return 500
 
     def validate_and_score_profiles(self, clusters, url):
         """Valide et score chaque profil potentiel"""
