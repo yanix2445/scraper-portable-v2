@@ -415,80 +415,69 @@ class IntelligentPersonExtractor:
         if len(text) < 2 or len(text) > 50:
             return False
 
-        # Contient des mots à éviter
+        # Contient des mots à éviter (FR + EN)
         avoid_words = {
-            "contact",
-            "accueil",
-            "société",
-            "entreprise",
-            "company",
-            "home",
-            "about",
-            "services",
-            "produits",
-            "lorem",
-            "ipsum",
-            "exemple",
-            "téléphone",
-            "email",
-            "adresse",
-            "phone",
-            "mail",
-            "website",
-            "mentions",
-            "légales",
-            "politique",
-            "confidentialité",
-            "portfolio",
-            "prénom",
-            "prenom",
-            "nom",
-            "name",
-            "firstname",
-            "lastname",
-            "message",
-            "subject",
-            "objet",
-            "bac",
-            "pro",
-            "recherche",
-            "alternance",
-            "étudiant",
-            "student",
-            "développeur",
-            "developer",
-            "technicien",
-            "ingénieur",
-            "engineer",
-            "supabase",
-            "python",
-            "javascript",
-            "typescript",
-            "react",
-            "nextjs",
-            "docker",
-            "linux",
-            "windows",
-            "macos",
-            "github",
-            "gitlab",
-            "france",
-            "paris",
-            "lyon",
-            "marseille",
-            "code",
-            "bash",
-            "shell",
-            "optionnel",
-            "optional",
-            "formats",
-            "format",
-            "obligatoire",
-            "required",
-            "champ",
-            "field",
-            "formulaire",
-            "form",
+            # Navigation & sections (FR/EN)
+            "contact", "contacts",
+            "accueil", "home", "homepage",
+            "société", "company", "corporation",
+            "entreprise", "business",
+            "about", "à propos", "apropos",
+            "services", "service",
+            "produits", "products", "product",
+
+            # Termes génériques (FR/EN)
+            "lorem", "ipsum", "exemple", "example", "sample", "test",
+            "téléphone", "telephone", "phone", "mobile",
+            "email", "mail", "e-mail", "courriel",
+            "adresse", "address", "location",
+            "website", "site", "web",
+
+            # Légal (FR/EN)
+            "mentions", "légales", "legal", "terms",
+            "politique", "policy", "privacy",
+            "confidentialité", "confidential",
+            "copyright", "droits",
+
+            # Champs de formulaire (FR/EN)
+            "portfolio", "portfolios",
+            "prénom", "prenom", "firstname", "first name",
+            "nom", "name", "lastname", "last name", "full name",
+            "message", "messages",
+            "subject", "objet", "sujet",
+            "optionnel", "optional",
+            "formats", "format",
+            "obligatoire", "required", "mandatory",
+            "champ", "field", "input",
+            "formulaire", "form",
+
+            # Éducation (FR/EN)
+            "bac", "bachelor", "degree",
+            "pro", "professional",
+            "recherche", "search", "looking", "seeking",
+            "alternance", "internship", "apprentice",
+            "étudiant", "student",
+
+            # Métiers (FR/EN)
+            "développeur", "developer", "dev",
+            "technicien", "technician", "tech",
+            "ingénieur", "engineer", "engineering",
+            "consultant", "manager", "director",
+
+            # Technologies
+            "supabase", "firebase", "database",
+            "python", "java", "ruby", "php",
+            "javascript", "typescript", "node",
+            "react", "angular", "vue",
+            "nextjs", "next", "gatsby",
+            "docker", "kubernetes",
+            "linux", "windows", "macos", "ubuntu",
+            "github", "gitlab", "bitbucket",
+            "code", "bash", "shell", "terminal",
+
+            # Villes (FR/EN)
+            "france", "paris", "lyon", "marseille", "toulouse",
+            "london", "new york", "york", "berlin", "madrid",
         }
 
         if any(word in text.lower() for word in avoid_words):
@@ -1141,8 +1130,8 @@ class SimpleScraper:
             )
         )
 
-    def is_french_page(self, html: str) -> bool:
-        """Vérifie si une page est en français"""
+    def is_supported_language(self, html: str) -> bool:
+        """Vérifie si une page est en français ou anglais (langues supportées)"""
         try:
             from bs4 import BeautifulSoup
 
@@ -1152,45 +1141,45 @@ class SimpleScraper:
             html_tag = soup.find("html")
             if html_tag:
                 lang_attr = html_tag.get("lang")
-                if isinstance(lang_attr, str) and lang_attr.lower().startswith("fr"):
-                    return True
+                if isinstance(lang_attr, str):
+                    lang_lower = lang_attr.lower()
+                    # Accepter français et anglais
+                    if lang_lower.startswith(("fr", "en")):
+                        return True
 
             # Vérifier les meta tags de langue
             meta_lang = soup.find("meta", attrs={"name": "language"})
             if meta_lang:
                 content_attr = meta_lang.get("content", "")
-                if isinstance(content_attr, str) and content_attr.lower().startswith(
-                    "fr"
-                ):
-                    return True
+                if isinstance(content_attr, str):
+                    content_lower = content_attr.lower()
+                    if content_lower.startswith(("fr", "en")):
+                        return True
 
-            # Vérifier les indicateurs français dans le contenu
+            # Vérifier les indicateurs FR/EN dans le contenu
             text = soup.get_text().lower()
+
+            # Indicateurs français
             french_indicators = [
-                "équipe",
-                "à propos",
-                "société",
-                "entreprise",
-                "contact",
-                "téléphone",
-                "adresse",
-                "france",
-                "français",
-                "nos services",
-                "notre équipe",
-                "qui sommes-nous",
+                "équipe", "à propos", "société", "entreprise",
+                "téléphone", "adresse", "nos services", "notre équipe",
             ]
 
-            french_count = sum(
-                1 for indicator in french_indicators if indicator in text
-            )
+            # Indicateurs anglais
+            english_indicators = [
+                "team", "about", "company", "phone",
+                "address", "our services", "our team", "contact us",
+            ]
 
-            # Si au moins 2 indicateurs français trouvés
-            return french_count >= 2
+            french_count = sum(1 for ind in french_indicators if ind in text)
+            english_count = sum(1 for ind in english_indicators if ind in text)
+
+            # Si au moins 2 indicateurs FR ou EN trouvés
+            return french_count >= 2 or english_count >= 2
 
         except Exception as e:
             logger.debug(f"Erreur détection langue: {e}")
-            return True  # Par défaut, on considère comme français
+            return True  # Par défaut, on accepte
 
     def get_page_content(self, url: str) -> Optional[str]:
         """Récupère le contenu d'une page"""
@@ -1350,9 +1339,9 @@ class SimpleScraper:
             if not html:
                 continue
 
-            # Vérifier si la page est en français
-            if not self.is_french_page(html):
-                print(f"   🚫 Page non-française, ignorée")
+            # Vérifier si la page est dans une langue supportée (FR/EN)
+            if not self.is_supported_language(html):
+                print(f"   🚫 Langue non supportée, ignorée")
                 continue
 
             # Extraire les personnes
