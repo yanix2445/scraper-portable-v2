@@ -918,17 +918,17 @@ class IntelligentPersonExtractor:
 
     def get_proximity_threshold(self, elem1, elem2):
         """Calcule le seuil de proximité entre deux éléments"""
-        # Plus strict pour email-nom, plus souple pour nom-téléphone
+        # Seuils plus larges pour capturer les éléments dispersés dans une même zone
         if (elem1.type == "email" and elem2.type == "name") or (
             elem1.type == "name" and elem2.type == "email"
         ):
-            return 200  # Caractères
+            return 5000  # Caractères - très large pour une même zone de profil
         elif (elem1.type == "name" and elem2.type == "phone") or (
             elem1.type == "phone" and elem2.type == "name"
         ):
-            return 300
+            return 5000
         else:
-            return 150
+            return 5000  # Par défaut, regrouper tous les éléments d'une même zone
 
     def validate_and_score_profiles(self, clusters, url):
         """Valide et score chaque profil potentiel"""
