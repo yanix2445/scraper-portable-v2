@@ -7,102 +7,79 @@
 -- Supprimer l'ancienne table si elle existe
 DROP TABLE IF EXISTS personnes CASCADE;
 
--- Créer la table avec contraintes optimisées
+-- Créer la table avec colonnes essentielles uniquement
 CREATE TABLE personnes (
     -- Clé primaire auto-incrémentée
     id BIGSERIAL PRIMARY KEY,
 
-    -- Informations de contact (nom peut être vide, mais email obligatoire)
+    -- Données extraites (nom, email, téléphone)
     nom TEXT,
     email TEXT NOT NULL CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-    telephone TEXT,
-    poste TEXT,
+    telephone TEXT CHECK (telephone IS NULL OR telephone ~* '^\+?[0-9\s\.\-\(\)]{8,20}$'),
 
-    -- Métadonnées
+    -- Métadonnées essentielles
     source_url TEXT NOT NULL,
     confidence NUMERIC(3,2) DEFAULT 0.0 CHECK (confidence >= 0.0 AND confidence <= 1.0),
-
-    -- Timestamps automatiques
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
 
     -- Contrainte unique sur email (évite les doublons)
     CONSTRAINT unique_email UNIQUE(email)
 );
 
 -- ========================================
--- 📊 INDEX STRATÉGIQUES
+-- 📊 INDEX STRATÉGIQUES (pour tes 2 besoins)
 -- ========================================
 
--- Index sur email (recherches fréquentes)
-CREATE INDEX idx_personnes_email ON personnes(email);
+-- 1. BESOIN: Trier par fiabilité (du plus fiable au moins fiable)
+CREATE INDEX idx_personnes_confidence ON personnes(confidence DESC);
 
--- Index sur created_at (tri par date)
-CREATE INDEX idx_personnes_created_at ON personnes(created_at DESC);
-
--- Index sur source_url (filtrer par site source)
+-- 2. BESOIN: Filtrer par URL scrapée
 CREATE INDEX idx_personnes_source_url ON personnes(source_url);
 
--- Index composite email + created_at (queries combinées)
-CREATE INDEX idx_personnes_email_date ON personnes(email, created_at DESC);
+-- Bonus: Index composite pour "contacts d'un site triés par fiabilité"
+CREATE INDEX idx_personnes_url_confidence ON personnes(source_url, confidence DESC);
 
--- Index sur confidence (filtrer les résultats fiables)
-CREATE INDEX idx_personnes_confidence ON personnes(confidence DESC) WHERE confidence >= 0.8;
-
--- Index full-text search sur les noms (recherche textuelle rapide)
-CREATE INDEX idx_personnes_nom_fts ON personnes USING gin(to_tsvector('french', COALESCE(nom, '')));
-
--- ========================================
--- ⚡ TRIGGER POUR updated_at
--- ========================================
-
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_personnes_updated_at
-    BEFORE UPDATE ON personnes
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
 
 -- ========================================
 -- 🔐 ROW LEVEL SECURITY (SUPABASE)
 -- ========================================
--- Décommentez si vous voulez activer la sécurité par ligne
 
--- ALTER TABLE personnes ENABLE ROW LEVEL SECURITY;
+-- Activer RLS (sécurité par ligne)
+ALTER TABLE personnes ENABLE ROW LEVEL SECURITY;
 
--- Politique : tout le monde peut lire
--- CREATE POLICY "Permettre lecture publique"
---     ON personnes FOR SELECT
---     USING (true);
+-- Politique 1: Lecture publique (tout le monde peut consulter les contacts)
+CREATE POLICY "Lecture publique des contacts"
+    ON personnes FOR SELECT
+    USING (true);
 
--- Politique : seuls les utilisateurs authentifiés peuvent insérer
--- CREATE POLICY "Permettre insertion authentifiée"
---     ON personnes FOR INSERT
---     WITH CHECK (auth.role() = 'authenticated');
+-- Politique 2: Insertion authentifiée uniquement (seul ton scraper peut ajouter)
+CREATE POLICY "Insertion authentifiée uniquement"
+    ON personnes FOR INSERT
+    WITH CHECK (auth.role() = 'authenticated');
 
--- Politique : seuls les utilisateurs authentifiés peuvent mettre à jour
--- CREATE POLICY "Permettre mise à jour authentifiée"
---     ON personnes FOR UPDATE
---     USING (auth.role() = 'authenticated');
+-- Politique 3: Mise à jour authentifiée uniquement
+CREATE POLICY "Mise à jour authentifiée uniquement"
+    ON personnes FOR UPDATE
+    USING (auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'authenticated');
+
+-- Politique 4: Suppression authentifiée uniquement
+CREATE POLICY "Suppression authentifiée uniquement"
+    ON personnes FOR DELETE
+    USING (auth.role() = 'authenticated');
 
 -- ========================================
 -- 📈 VUES UTILES (OPTIONNEL)
 -- ========================================
 
--- Vue : personnes avec haute confiance
+-- Vue : personnes les plus fiables (BESOIN: trier par fiabilité)
 CREATE OR REPLACE VIEW personnes_fiables AS
 SELECT *
 FROM personnes
 WHERE confidence >= 0.8
-ORDER BY confidence DESC, created_at DESC;
+ORDER BY confidence DESC;
 
--- Vue : statistiques par source
+-- Vue : statistiques par site scrapé (BESOIN: filtrer par URL)
 CREATE OR REPLACE VIEW stats_par_source AS
 SELECT
     source_url,
@@ -113,21 +90,19 @@ SELECT
     MAX(created_at) as dernier_scraping
 FROM personnes
 GROUP BY source_url
-ORDER BY nombre_contacts DESC;
+ORDER BY confiance_moyenne DESC;
 
 -- ========================================
 -- 🎯 COMMENTAIRES (DOCUMENTATION)
 -- ========================================
 
-COMMENT ON TABLE personnes IS 'Contacts extraits par le scraper portable (emails, noms, téléphones)';
+COMMENT ON TABLE personnes IS 'Contacts extraits par le scraper (nom, email, téléphone) avec fiabilité et source';
 COMMENT ON COLUMN personnes.nom IS 'Nom complet (ex: "Marie Dupont", "Jean-Pierre Martin")';
-COMMENT ON COLUMN personnes.email IS 'Adresse email (obligatoire, unique)';
-COMMENT ON COLUMN personnes.telephone IS 'Numéro de téléphone formaté (+33 6...)';
-COMMENT ON COLUMN personnes.poste IS 'Fonction/poste (ex: "CEO", "Directeur")';
-COMMENT ON COLUMN personnes.source_url IS 'URL de la page source';
-COMMENT ON COLUMN personnes.confidence IS 'Score de confiance (0.0 à 1.0)';
-COMMENT ON COLUMN personnes.created_at IS 'Date de création (automatique)';
-COMMENT ON COLUMN personnes.updated_at IS 'Date de dernière modification (automatique)';
+COMMENT ON COLUMN personnes.email IS 'Adresse email (obligatoire, unique, validé par regex)';
+COMMENT ON COLUMN personnes.telephone IS 'Numéro de téléphone formaté (+33 6...), validé par regex';
+COMMENT ON COLUMN personnes.source_url IS 'URL de la page scrapée (pour filtrer par site)';
+COMMENT ON COLUMN personnes.confidence IS 'Score de fiabilité (0.0 à 1.0) pour trier les meilleurs contacts';
+COMMENT ON COLUMN personnes.created_at IS 'Date du scraping (automatique)';
 
 -- ========================================
 -- ✅ VÉRIFICATION
@@ -135,29 +110,40 @@ COMMENT ON COLUMN personnes.updated_at IS 'Date de dernière modification (autom
 
 -- Test : vérifier que tout est créé
 DO $$
+DECLARE
+    index_count INT;
 BEGIN
-    RAISE NOTICE '✅ Table "personnes" créée avec succès';
-    RAISE NOTICE '✅ % index créés', (SELECT COUNT(*) FROM pg_indexes WHERE tablename = 'personnes');
-    RAISE NOTICE '✅ Trigger updated_at activé';
-    RAISE NOTICE '✅ 2 vues créées (personnes_fiables, stats_par_source)';
-    RAISE NOTICE '🎉 Setup terminé ! Vous pouvez maintenant lancer le scraper.';
+    SELECT COUNT(*) INTO index_count FROM pg_indexes WHERE tablename = 'personnes';
+
+    RAISE NOTICE '✅ Table "personnes" créée (7 colonnes essentielles)';
+    RAISE NOTICE '✅ Colonnes: id, nom, email, telephone, source_url, confidence, created_at';
+    RAISE NOTICE '✅ % index créés pour tes besoins:', index_count;
+    RAISE NOTICE '   - Index confidence (trier par fiabilité)';
+    RAISE NOTICE '   - Index source_url (filtrer par site)';
+    RAISE NOTICE '   - Index composite (URL + fiabilité)';
+    RAISE NOTICE '✅ Contraintes: email unique, validation email/téléphone';
+    RAISE NOTICE '✅ 2 vues: personnes_fiables, stats_par_source';
+    RAISE NOTICE '🎉 Setup terminé ! Lance ton scraper.';
 END $$;
 
 -- ========================================
--- 📝 EXEMPLES DE REQUÊTES UTILES
+-- 📝 EXEMPLES DE REQUÊTES (pour tes besoins)
 -- ========================================
 
--- Rechercher un contact par email
--- SELECT * FROM personnes WHERE email = 'jean.dupont@example.com';
+-- BESOIN 1: Trier tous les contacts par fiabilité (du plus fiable au moins fiable)
+-- SELECT * FROM personnes ORDER BY confidence DESC;
 
--- Lister les contacts d'un site
--- SELECT * FROM personnes WHERE source_url LIKE '%example.com%' ORDER BY confidence DESC;
+-- BESOIN 2: Voir tous les contacts d'un site spécifique
+-- SELECT * FROM personnes WHERE source_url = 'https://example.com';
 
--- Recherche full-text sur les noms
--- SELECT * FROM personnes WHERE to_tsvector('french', nom) @@ to_tsquery('french', 'dupont');
+-- COMBO: Contacts d'un site, triés par fiabilité (utilise index composite)
+-- SELECT * FROM personnes WHERE source_url = 'https://example.com' ORDER BY confidence DESC;
 
--- Statistiques globales
--- SELECT COUNT(*) as total, AVG(confidence) as conf_moy FROM personnes;
+-- Voir les contacts les plus fiables uniquement (confidence >= 0.8)
+-- SELECT * FROM personnes_fiables;
 
--- Trouver les doublons potentiels (même nom, emails différents)
--- SELECT nom, COUNT(*) FROM personnes WHERE nom IS NOT NULL GROUP BY nom HAVING COUNT(*) > 1;
+-- Statistiques par site scrapé
+-- SELECT * FROM stats_par_source;
+
+-- Trouver les meilleurs contacts tous sites confondus
+-- SELECT * FROM personnes WHERE confidence >= 0.9 ORDER BY confidence DESC LIMIT 100;
