@@ -52,10 +52,10 @@ CREATE POLICY "Lecture publique des contacts"
     ON personnes FOR SELECT
     USING (true);
 
--- Politique 2: Insertion authentifiée uniquement (seul ton scraper peut ajouter)
-CREATE POLICY "Insertion authentifiée uniquement"
+-- Politique 2: Insertion publique (permet insertion avec clé anon)
+CREATE POLICY "Insertion publique"
     ON personnes FOR INSERT
-    WITH CHECK (auth.role() = 'authenticated');
+    WITH CHECK (true);
 
 -- Politique 3: Mise à jour authentifiée uniquement
 CREATE POLICY "Mise à jour authentifiée uniquement"

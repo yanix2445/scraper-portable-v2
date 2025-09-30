@@ -283,6 +283,9 @@ class SimpleSupabaseManager:
             person.created_at = datetime.now().isoformat()
             data = asdict(person)
 
+            # Supprimer 'poste' car absent de la table Supabase
+            data.pop('poste', None)
+
             # Insertion simple
             result = self.client.table("personnes").insert(data).execute()
             return True
