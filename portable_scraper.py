@@ -479,6 +479,16 @@ class IntelligentPersonExtractor:
             "code",
             "bash",
             "shell",
+            "optionnel",
+            "optional",
+            "formats",
+            "format",
+            "obligatoire",
+            "required",
+            "champ",
+            "field",
+            "formulaire",
+            "form",
         }
 
         if any(word in text.lower() for word in avoid_words):
@@ -1276,19 +1286,37 @@ class SimpleScraper:
             return []
 
     def deduplicate_persons(self, persons):
-        """Supprime les doublons de personnes"""
+        """Supprime les doublons de personnes en gardant le meilleur profil"""
         if not persons:
             return []
 
+        # Regrouper par email
+        by_email = {}
+        for person in persons:
+            if person.email:
+                email_key = person.email.lower()
+                if email_key not in by_email:
+                    by_email[email_key] = []
+                by_email[email_key].append(person)
+
+        # Pour chaque email, garder le meilleur profil
         unique_persons = []
-        seen_emails = set()
+        for email, profiles in by_email.items():
+            # Scorer chaque profil
+            def profile_score(p):
+                score = p.confidence
+                # Bonus si nom valide (pas vide, pas "Optionnel Formats", etc.)
+                if p.nom and len(p.nom) > 3 and " " in p.nom:
+                    score += 0.5
+                # Bonus si téléphone présent
+                if p.telephone:
+                    score += 0.2
+                return score
 
-        for person in sorted(persons, key=lambda p: p.confidence, reverse=True):
-            if person.email and person.email.lower() not in seen_emails:
-                seen_emails.add(person.email.lower())
-                unique_persons.append(person)
+            best = max(profiles, key=profile_score)
+            unique_persons.append(best)
 
-        return unique_persons
+        return sorted(unique_persons, key=lambda p: p.confidence, reverse=True)
 
     def crawl(self) -> List[PersonInfo]:
         """Lance le crawling avec priorisation intelligente"""
@@ -1360,8 +1388,11 @@ class SimpleScraper:
             # Pause respectueuse
             time.sleep(1)
 
-        print(f"\n✅ Crawling terminé - {len(all_persons)} profils uniques trouvés")
-        return all_persons
+        # Déduplication finale globale entre toutes les pages
+        unique_persons = self.deduplicate_persons(all_persons)
+
+        print(f"\n✅ Crawling terminé - {len(unique_persons)} profils uniques trouvés")
+        return unique_persons
 
     def track_successful_pattern(self, url: str):
         """Enregistre les patterns d'URLs qui ont donné des résultats"""
