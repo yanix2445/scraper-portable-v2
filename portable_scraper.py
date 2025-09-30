@@ -439,6 +439,16 @@ class IntelligentPersonExtractor:
             "légales",
             "politique",
             "confidentialité",
+            "portfolio",
+            "prénom",
+            "prenom",
+            "nom",
+            "name",
+            "firstname",
+            "lastname",
+            "message",
+            "subject",
+            "objet",
         }
 
         if any(word in text.lower() for word in avoid_words):
@@ -463,17 +473,21 @@ class IntelligentPersonExtractor:
             if re.search(pattern, text):
                 return False
 
-        # Patterns qui ressemblent à des noms
+        # Patterns qui ressemblent à des noms (EXIGER prénom + nom)
         name_patterns = [
-            r"^[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+$",  # Marie
-            # Marie Dupont
-            r"^[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+$",
-            # Jean-Pierre
-            r"^[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+\-[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+$",
-            r"^(?:M\.|Mme|Dr|Pr)\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ]",  # M. Dupont
+            # Marie Dupont (au moins 2 mots)
+            r"^[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+",
+            # Jean-Pierre Martin (avec tiret)
+            r"^[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+\-[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ]",
+            # M. Dupont, Mme Martin
+            r"^(?:M\.|Mme|Dr|Pr)\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-zàâäéèêëïîôöùûüÿç]+",
         ]
 
-        return any(re.match(pattern, text) for pattern in name_patterns)
+        # Doit correspondre à un pattern ET avoir au moins 2 mots (sauf si préfixe M./Mme)
+        has_valid_pattern = any(re.match(pattern, text) for pattern in name_patterns)
+        has_two_words = len(words) >= 2 or any(text.startswith(prefix) for prefix in ["M.", "Mme", "Dr", "Pr"])
+
+        return has_valid_pattern and has_two_words
 
     def get_html_confidence(self, elem, selector: str) -> float:
         """Score de confiance selon l'élément HTML"""
