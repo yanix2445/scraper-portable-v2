@@ -1,341 +1,382 @@
-# 🕷️ Scraper Portable - Guide d'Installation et d'Utilisation
+# 🕷️ Scraper Portable - Ton Assistant d'Extraction de Contacts
 
-⚠️ **Important pour utilisateurs macOS** : Vous devez utiliser `source setup_venv.sh` avant de lancer le script sur macOS avec Python 3.13+ (Homebrew).
+> **En gros :** Un script Python qui visite des sites web et récupère automatiquement tous les emails, noms et numéros de téléphone. Zero config compliquée, il s'installe tout seul ! 🚀
 
-## 📦 Contenu du Package
+---
 
-- `portable_scraper.py` - Script principal auto-installable
-- `recreate_table.sql` - Script de création de la base de données
-- `.env.example` - Fichier de configuration exemple
-- `setup_venv.sh` - Script d'installation d'environnement virtuel
-- `README.md` - Ce guide d'installation
+## 🎯 C'est quoi exactement ?
 
-## 🚀 Installation Rapide
+Imagine : tu veux récupérer tous les contacts d'un site (équipe, direction, staff...). Au lieu de copier-coller pendant des heures comme un robot, tu lances ce petit script, tu lui files l'URL du site, et **boom** 💥 il te sort un joli fichier JSON avec tous les contacts bien organisés.
 
-### 1. Prérequis
+**Le meilleur dans tout ça ?** Pas besoin d'installer 50 trucs avant, le script gère tout automatiquement. Tu lances, ça roule !
 
-- **Python 3.7+** (vérifiez avec `python --version` ou `python3 --version`)
-- **Connexion Internet** pour l'installation automatique des dépendances
-- **Compte Supabase** (gratuit sur [supabase.com](https://supabase.com))
+---
 
-### 1.1. Configuration Automatique (.env)
+## 📦 Ce qu'il y a dans le pack
 
-Pour éviter de retaper vos informations à chaque fois :
-
-```bash
-# Copiez le fichier exemple
-cp .env.example .env
-
-# Éditez le fichier .env avec vos vraies valeurs
-nano .env
+```
+📁 ton-dossier/
+├── 🐍 portable_scraper.py      # Le boss (c'est lui qui fait tout ⭐)
+├── 🗄️ recreate_table.sql       # Pour créer ta base de données
+├── ⚙️ .env.example              # Config exemple (super pratique)
+├── 🔧 setup_venv.sh            # Script magique pour Mac
+└── 📖 README.md                 # Le guide que tu lis là 👋
 ```
 
-**Le fichier .env.example contient déjà un exemple complet :**
-```env
-SUPABASE_URL=https://eeqxziwpykocnrbtmxiy.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DEFAULT_MAX_PAGES=50
-DEFAULT_SAVE_DIR=.
-# DEFAULT_URL=https://example.com
+---
+
+## 🚀 Installation Ultra Rapide (5 min chrono)
+
+### Étape 1️⃣ : Check si t'as Python
+
+Ouvre ton terminal et tape :
+```bash
+python --version
+# ou si ça marche pas :
+python3 --version
 ```
 
-⚠️ **Important** : Remplacez les valeurs dans votre fichier `.env` par vos vraies informations Supabase.
+Il te faut **Python 3.7 minimum**. Si c'est OK, passe direct à l'étape 2. Sinon, va sur [python.org](https://python.org) pour l'installer (c'est gratuit et rapide).
 
-### 1.2. Environnement Virtuel (REQUIS pour macOS)
+---
 
-⚠️ **Important pour macOS** : Si vous avez Python 3.13+ installé via Homebrew, l'environnement virtuel est **obligatoire** pour que le script fonctionne correctement.
+### Étape 2️⃣ : Prépare ton environnement
 
+#### Sur macOS 🍎 (avec Homebrew)
 ```bash
-# REQUIS sur macOS - Script automatique
+# Un seul coup et c'est réglé !
 source setup_venv.sh
-
-# Puis lancez le script
-python portable_scraper.py
 ```
+> 💡 **Pourquoi ?** Depuis Python 3.13+, Apple a mis des restrictions. Cet environnement virtuel contourne ça proprement.
 
-**Alternative manuelle :**
+#### Sur Linux/Windows 🐧🪟
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-python portable_scraper.py
-```
-
-💡 **Pourquoi ?** Python 3.13+ sur Homebrew utilise PEP 668 qui empêche l'installation de packages système. L'environnement virtuel contourne cette limitation.
-
-### 2. Configuration de la Base de Données
-
-#### Étape 2.1 : Créer un projet Supabase
-
-1. Allez sur [supabase.com](https://supabase.com)
-2. Créez un compte ou connectez-vous
-3. Cliquez sur **"New Project"**
-4. Choisissez votre organisation
-5. Donnez un nom à votre projet (ex: `scraper-portable`)
-6. Choisissez un mot de passe sécurisé
-7. Sélectionnez une région proche
-8. Cliquez sur **"Create new project"**
-
-#### Étape 2.2 : Créer la table
-
-1. Une fois le projet créé, allez dans **"SQL Editor"**
-2. Ouvrez le fichier `recreate_table.sql`
-3. Copiez tout le contenu
-4. Collez-le dans l'éditeur SQL de Supabase
-5. Cliquez sur **"Run"** pour exécuter
-
-✅ Votre table `personnes` est maintenant créée !
-
-#### Étape 2.3 : Récupérer les clés d'accès
-
-1. Allez dans **Settings** > **API**
-2. Notez ces informations :
-   - **URL** : `https://votre-projet.supabase.co`
-   - **Clé anon** : `eyJhbGciOiJIUz...` (clé publique)
-
-💡 **Conseil** : Copiez ces valeurs directement dans votre fichier `.env` pour gagner du temps !
-
-## 🎯 Utilisation
-
-### Lancement du Script
-
-**Sur macOS (obligatoire) :**
-```bash
-# 1. Activez l'environnement virtuel
-source setup_venv.sh
-
-# 2. Lancez le script
-python portable_scraper.py
-```
-
-**Sur Linux/Windows :**
-```bash
-# Tentative directe (peut fonctionner)
+# Essaie direct d'abord
 python3 portable_scraper.py
 
-# Si échec, utilisez un environnement virtuel
+# Si ça bloque, crée un environnement virtuel
 python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# ou
-venv\Scripts\activate     # Windows
-python portable_scraper.py
+source venv/bin/activate      # Linux/Mac
+# OU
+venv\Scripts\activate         # Windows
 ```
 
-### Configuration Interactive
+> 💡 **C'est quoi un venv ?** C'est comme une bulle isolée pour tes scripts Python. Ça évite les conflits avec d'autres projets.
 
-#### Avec fichier .env (Recommandé)
+---
 
-Si vous avez configuré un fichier `.env`, le script vous proposera :
+### Étape 3️⃣ : Configure Supabase (ta base de données gratuite)
 
-1. **🔗 URL du site à scraper [URL par défaut si configurée]**
-   ```
-   🔗 URL du site à scraper [https://example.com]:
-   Appuyez sur Entrée pour utiliser la valeur par défaut
-   ```
+#### 3.1 - Crée ton compte (2 min)
 
-2. **🗄️ Configuration Supabase (depuis .env)**
-   ```
-   🗄️ Configuration Supabase (depuis .env):
-   URL: https://eeqxziwpykocnrbtmxiy.supabase.co
-   Clé: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   Utiliser cette configuration ? [O/n]:
-   ```
+1. Va sur [supabase.com](https://supabase.com)
+2. Clique **"Start your project"** (100% gratuit)
+3. Connecte-toi avec GitHub ou email
+4. Crée un nouveau projet :
+   - **Nom** : `scraper-contacts` (ou ce que tu veux)
+   - **Password** : choisis un mot de passe solide
+   - **Région** : prends le plus proche géographiquement
+5. Attends 30 sec que ça se crée ☕
 
-#### Sans fichier .env
+#### 3.2 - Crée ta table (30 sec)
 
-Le script vous demandera :
+1. Dans ton projet Supabase → **"SQL Editor"** (menu gauche)
+2. Ouvre le fichier `recreate_table.sql` sur ton PC
+3. Copie tout le contenu (Ctrl+A, Ctrl+C)
+4. Colle dans l'éditeur Supabase (Ctrl+V)
+5. Clique **"RUN"** en bas à droite
+6. Message de succès = GG ! ✅
 
-1. **🔗 URL du site à scraper**
-   ```
-   Exemple : https://example.com
-   ```
+#### 3.3 - Récupère tes clés (1 min)
 
-2. **📄 Nombre max de pages [50]**
-   ```
-   Appuyez sur Entrée pour 50, ou tapez un nombre
-   ```
+1. Menu **Settings** → **API** (l'icône engrenage)
+2. Note bien ces 2 trucs :
+   - **URL** : ressemble à `https://xxxxx.supabase.co`
+   - **anon public key** : un long texte qui commence par `eyJ...`
 
-3. **🗄️ Configuration Supabase**
-   ```
-   URL Supabase : https://eeqxziwpykocnrbtmxiy.supabase.co
-   Clé Supabase : eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
+> 💡 **Astuce** : Garde ça dans un fichier texte, tu vas en avoir besoin juste après !
 
-4. **📁 Dossier de sauvegarde**
-   ```
-   1) Répertoire courant
-   2) Bureau
-   3) Téléchargements
-   4) Dossier personnalisé
-   ```
+---
 
-### Exemple d'Exécution
+### Étape 4️⃣ : Config automatique (optionnel mais top)
+
+Pour pas retaper tes infos à chaque fois :
+
+```bash
+# Copie le template
+cp .env.example .env
+
+# Édite avec ton éditeur préféré
+nano .env
+# ou code .env
+# ou vim .env
+```
+
+Remplis comme ça :
+```env
+SUPABASE_URL=https://ton-projet.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUz...ta-grosse-clé-ici
+DEFAULT_MAX_PAGES=50
+```
+
+Sauvegarde et c'est dans la poche ! Le script chargera tout automatiquement.
+
+---
+
+## 🎮 Mode d'emploi (super simple)
+
+### Lancer le script
+
+**Sur Mac** :
+```bash
+source setup_venv.sh          # Active l'environnement
+python portable_scraper.py    # C'est parti !
+```
+
+**Sur Linux/Windows** :
+```bash
+python3 portable_scraper.py   # Go !
+```
+
+---
+
+### Le script va te poser des questions
+
+**1. URL du site ?**
+```
+🔗 URL du site à scraper: https://example.com
+```
+Entre l'URL du site que tu veux scraper.
+
+**2. Combien de pages max ?**
+```
+📄 Nombre max de pages [50]:
+```
+Laisse vide pour 50 pages, ou tape un chiffre (ex: 10 pour tester).
+
+**3. Config Supabase ?**
+```
+🗄️ Utiliser la config .env ? [O/n]:
+```
+Si t'as fait l'étape 4, tape juste "O" (ou Entrée). Sinon, entre tes clés manuellement.
+
+**4. Où sauvegarder ?**
+```
+📁 Dossier de sauvegarde:
+1) Ici (répertoire actuel)
+2) Bureau
+3) Téléchargements
+4) Autre...
+```
+Choisis où tu veux le fichier JSON final.
+
+---
+
+### Exemple concret
 
 ```
 🚀 Scraper Portable Auto-Installable
 ========================================
-✅ Python 3.9 détecté
+✅ Python 3.11 détecté
 🔧 Vérification des dépendances...
   ✅ requests
   ✅ beautifulsoup4
-  ✅ lxml
-  ✅ supabase
   ✅ spacy
-  ✅ python-dotenv
-  ✅ Modèle spaCy français
-✅ Toutes les dépendances sont prêtes!
-
-🚀 Scraper Portable - Configuration
-========================================
-🔗 URL du site à scraper: https://example.com
-📄 Nombre max de pages [50]: 20
-🗄️ Configuration Supabase (depuis .env):
-URL: https://eeqxziwpykocnrbtmxiy.supabase.co
-Clé: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-Utiliser cette configuration ? [O/n]:
-✅ Connexion Supabase réussie
+✅ Toutes les dépendances OK !
 
 🕷️ Début du crawling de https://example.com
-📄 Page 1/20: https://example.com
+📄 Page 1/50: https://example.com
    👥 2 personne(s) trouvée(s)
-📄 Page 2/20: https://example.com/about
-   👥 1 personne(s) trouvée(s)
-...
+      • Jean Dupont - jean.dupont@example.com - 06 12 34 56 78 (1.0)
+      • Marie Martin - marie@example.com - 01 23 45 67 89 (0.9)
 
-📊 Résultats: 15 personne(s) trouvée(s)
-💾 15 personne(s) sauvegardée(s) en base
-📁 Résultats sauvés dans: scraping_example_com_29-09-2025_14h30.json
+📄 Page 2/50: https://example.com/team
+   👥 3 personne(s) trouvée(s)
+   ...
 
-👥 Exemples trouvés:
-  1. John Doe - john.doe@example.com - 01 23 45 67 89
-  2. Jane Smith - jane.smith@example.com - 06 78 90 12 34
-  3. Bob Wilson - bob.wilson@example.com -
+✅ Crawling terminé - 15 profils trouvés
+💾 15 personnes sauvegardées en base Supabase
+📁 Fichier : saves/2025/09-Septembre/30/14h30_example_com_scraping.json
 
-✅ Scraping terminé!
+Enjoy! 🎉
 ```
-
-## 📊 Résultats
-
-### Base de Données Supabase
-
-Les données sont automatiquement sauvées dans votre table `personnes` avec :
-- **nom** : Nom complet de la personne (ex: "Marie Dupont", "Jean-Pierre Martin")
-- **email** : Adresse email
-- **telephone** : Numéro de téléphone formaté
-- **poste** : Fonction/poste
-- **source_url** : URL de la page source
-- **confidence** : Score de confiance (0.0 à 1.0)
-- **created_at** : Date de création automatique
-
-### Fichier JSON Local
-
-Les fichiers JSON sont organisés dans une structure de dossiers logique par date :
-
-```
-saves/
-├── 2025/
-│   ├── 09-Septembre/
-│   │   ├── 29/
-│   │   │   ├── 14h30_example_com_scraping.json
-│   │   │   ├── 15h45_zyteck_fr_scraping.json
-│   │   │   └── ...
-│   │   └── 30/
-│   │       └── ...
-│   └── 10-Octobre/
-│       └── ...
-└── ...
-```
-
-**Format des fichiers** : `[heure]_[nom-du-site]_scraping.json`
-
-Cette organisation permet de :
-- ✅ Retrouver facilement les sauvegardes par date
-- ✅ Éviter l'encombrement du répertoire principal
-- ✅ Conserver un historique organisé chronologiquement
-
-## ⚙️ Fonctionnalités
-
-### 🔧 Installation Automatique
-- Vérifie la version Python
-- Installe automatiquement toutes les dépendances
-- Configure spaCy pour l'extraction de noms
-
-### 🕷️ Scraping Intelligent
-- Crawling respectueux (pause de 1s entre pages)
-- Extraction d'emails, téléphones et noms
-- Évite les doublons automatiquement
-- Reste sur le même domaine
-
-### 💾 Sauvegarde Double
-- **Supabase** : Base de données cloud
-- **JSON local** : Fichier de sauvegarde
-
-### 📱 Formats de Téléphone Supportés
-- Français : `06 12 34 56 78`, `+33 6 12 34 56 78`
-- Internationaux : `+1 234 567 8900`
-- Détection contextuelle : `Tel: 01.23.45.67.89`
-
-## 🛠️ Dépannage
-
-### Problème : "Python 3.7+ requis"
-```bash
-# Vérifiez votre version
-python --version
-# ou
-python3 --version
-```
-
-### Problème : "Échec installation dépendances"
-
-**Sur macOS :**
-```bash
-# Solution recommandée : utilisez l'environnement virtuel
-source setup_venv.sh
-python portable_scraper.py
-```
-
-**Sur autres systèmes :**
-```bash
-# Installez pip manuellement
-python -m ensurepip --upgrade
-# ou
-pip install --upgrade pip
-```
-
-### Problème : "Connexion Supabase échouée"
-- Vérifiez votre URL (doit commencer par `https://`)
-- Vérifiez votre clé (doit commencer par `eyJ`)
-- Vérifiez votre connexion Internet
-
-### Problème : "Table 'personnes' n'existe pas"
-- Réexécutez le script `recreate_table.sql` dans Supabase
-- Vérifiez dans Table Editor que la table existe
-
-## 🔒 Sécurité
-
-- ✅ **Respect des robots.txt** (pause entre requêtes)
-- ✅ **User-Agent standard** (pas de bot détectable)
-- ✅ **Pas de stockage de mots de passe**
-- ✅ **Clés Supabase en lecture/écriture seulement**
-
-## 📝 Support
-
-En cas de problème :
-1. Vérifiez que tous les fichiers sont présents
-2. Vérifiez votre connexion Supabase dans le dashboard
-3. Testez avec un site simple (votre propre site)
-
-## 🚀 Conseils d'Utilisation
-
-### Sites Recommandés
-- Sites d'entreprises avec pages équipe
-- Annuaires professionnels
-- Sites institutionnels
-
-### Sites à Éviter
-- Sites avec captcha
-- Sites nécessitant une connexion
-- Sites avec beaucoup de JavaScript dynamique
 
 ---
 
-**💡 Astuce** : Commencez toujours par tester sur 5-10 pages maximum pour vérifier que le site est compatible avant de lancer un scraping complet !
+## 📊 Où sont mes résultats ?
+
+### Dans Supabase 🗄️
+
+Va sur ton dashboard Supabase → **Table Editor** → table `personnes`
+
+Tu verras tout bien rangé :
+- **nom** : ex: "Jean Dupont", "Marie Martin"
+- **email** : l'adresse email
+- **telephone** : le tel formaté nickel (+33 6...)
+- **poste** : le job si trouvé ("Directeur", "CEO"...)
+- **source_url** : l'URL d'où ça vient
+- **confidence** : score de fiabilité (0.0 = pas sûr, 1.0 = très sûr)
+- **created_at** : timestamp automatique
+
+### Dans un fichier JSON 📁
+
+Structure hyper organisée par date :
+
+```
+saves/
+└── 2025/
+    └── 09-Septembre/
+        └── 30/
+            ├── 14h30_example_com_scraping.json
+            ├── 15h45_autre_site_scraping.json
+            └── ...
+```
+
+Le JSON ressemble à ça :
+```json
+[
+  {
+    "nom": "Jean Dupont",
+    "email": "jean.dupont@example.com",
+    "telephone": "+33 6 12 34 56 78",
+    "poste": "CEO",
+    "source_url": "https://example.com/team",
+    "confidence": 0.95,
+    "created_at": "2025-09-30T14:30:00"
+  }
+]
+```
+
+---
+
+## 🎨 Les trucs stylés du script
+
+### 🧠 IA intégrée
+- Utilise **spaCy** pour reconnaître les vrais noms
+- Filtre les faux positifs ("Contact", "Team", "About Us"...)
+- Score de confiance pour chaque extraction
+
+### 🌍 Français + Anglais
+- Détecte automatiquement la langue du site
+- Gère les formats français ET anglais
+- Téléphones français, US, UK, internationaux...
+
+### 🎯 Extraction intelligente
+- Trouve les zones "équipe", "team", "staff" automatiquement
+- Regroupe les infos éparpillées (email en haut, nom en bas = OK !)
+- Évite les doublons tout seul
+- Priorise les noms proches des emails
+
+### 📞 Tous les formats de tel
+- France : `06 12 34 56 78`, `+33 6 12 34 56 78`, `01.23.45.67.89`
+- USA : `+1 234 567 8900`
+- UK : `+44 20 1234 5678`
+- Contexte : `Tel: 01 23 45 67 89` → détecté !
+
+### 🤝 Respectueux
+- Pause de 1 sec entre chaque page (pas de spam)
+- User-Agent standard (pas repéré comme bot)
+- Reste sur le domaine demandé
+- Timeout de 10 sec par page
+
+---
+
+## 🛠️ Problèmes courants
+
+### "Python 3.7+ requis"
+```bash
+# Check ta version
+python --version
+
+# Trop vieux ? Installe une version récente sur python.org
+```
+
+### "Échec installation dépendances"
+```bash
+# Sur Mac
+source setup_venv.sh
+python portable_scraper.py
+
+# Sur autres systèmes
+python -m ensurepip --upgrade
+pip install --upgrade pip
+```
+
+### "Connexion Supabase failed"
+- ✅ URL commence par `https://` ?
+- ✅ Clé commence par `eyJ` ?
+- ✅ Internet fonctionne ?
+- ✅ Projet Supabase créé ?
+
+### "Table 'personnes' existe pas"
+Refais l'étape 3.2 (copie le SQL dans Supabase)
+
+### "Aucun contact trouvé"
+- ✅ Le site a des contacts visibles (pas que des images) ?
+- ✅ Langue française ou anglaise ?
+- ✅ Pas de login requis ?
+- ✅ Pas de Cloudflare/captcha ?
+
+---
+
+## 💡 Tips de pro
+
+### Sites qui marchent bien 👍
+- Pages "Notre équipe" / "Our team"
+- Pages contact avec infos
+- Annuaires pros
+- Sites d'entreprise classiques
+- Portfolios personnels
+
+### Sites compliqués 👎
+- Sites avec captcha (Cloudflare, reCAPTCHA)
+- Sites avec login obligatoire
+- Sites 100% JavaScript (React/Vue sans SSR)
+- Réseaux sociaux (LinkedIn, Facebook...)
+
+### Astuce 🎓
+**Teste toujours avec 5-10 pages d'abord !**
+```
+📄 Nombre max de pages [50]: 5   # ← Tape 5 pour tester
+```
+Une fois que tu vois que ça marche, relance avec 50 ou plus.
+
+---
+
+## 🔐 Éthique & Légalité
+
+### Ce que fait le script ✅
+- Pause respectueuse entre pages
+- User-Agent standard
+- Reste sur le domaine
+- Utilise que des clés publiques
+
+### Tes responsabilités 🙏
+- **Respecte la vie privée** : utilise les données éthiquement
+- **Check le robots.txt** du site
+- **Pas de spam** : 1 scraping suffit généralement
+- **RGPD** : respecte les lois sur les données
+- **Demande permission** si possible au proprio du site
+
+> ⚠️ **Important** : Tu es responsable de comment tu utilises ce script. Utilise-le légalement et éthiquement !
+
+---
+
+## 🎉 C'est tout !
+
+Si t'as suivi ce guide, t'as maintenant :
+- ✅ Un scraper qui tourne
+- ✅ Une base Supabase configurée
+- ✅ Des contacts extraits proprement
+
+### Besoin d'aide ?
+1. Relis calmement ce README
+2. Check les logs d'erreur
+3. Google ton message d'erreur
+4. Teste avec un site simple d'abord
+
+---
+
+**Fait avec ❤️ - Happy Scraping ! 🕷️**
+
+*PS : Utilise ce pouvoir avec sagesse 😎*

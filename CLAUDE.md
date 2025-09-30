@@ -4,80 +4,218 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a portable web scraper distribution package designed to extract contact information (names, emails, phone numbers) from websites and store results in Supabase database and local JSON files. The project consists of a single self-installing Python script that automatically manages dependencies.
+A portable, self-installing web scraper that extracts contact information (names, emails, phone numbers) from websites. Designed as a single-file Python script with automatic dependency management, it saves results to both Supabase database and local JSON files. The scraper uses intelligent NLP-based extraction with multilingual support (French/English).
 
-## Repository Structure
+## Essential Commands
 
-- `portable_scraper.py` - Main self-installing scraper script with embedded dependencies management
-- `recreate_table.sql` - PostgreSQL/Supabase table creation script for the `personnes` table
-- `README.md` - Comprehensive French documentation and user guide
+### Running the Scraper
 
-## Running the Scraper
-
-### Basic Usage
+**macOS (REQUIRED due to Python 3.13+ PEP 668):**
 ```bash
+source setup_venv.sh  # Activates venv automatically
 python portable_scraper.py
 ```
 
-The script is entirely interactive and will:
-1. Check Python version (requires 3.7+)
-2. Auto-install all required dependencies
-3. Prompt for configuration (URL, page limits, Supabase credentials, save directory)
-4. Execute the scraping process
-5. Save results to both Supabase and local JSON file
+**Linux/Windows:**
+```bash
+# Try direct execution first
+python3 portable_scraper.py
 
-### Dependencies Management
-The script automatically handles all dependencies without requiring requirements.txt or manual pip installation:
-- requests, beautifulsoup4, lxml (web scraping)
-- supabase (database integration)
-- spacy (natural language processing for name extraction)
-- python-dotenv (environment handling)
+# If fails, use venv
+python3 -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+python portable_scraper.py
+```
 
 ### Database Setup
-Before first run, execute `recreate_table.sql` in your Supabase SQL Editor to create the required `personnes` table with proper indexes and triggers.
+```bash
+# Execute in Supabase SQL Editor before first run
+# Copy contents of recreate_table.sql
+```
 
-## Code Architecture
+### Configuration
+```bash
+# Optional: Create .env file for default values
+cp .env.example .env
+# Edit .env with your Supabase credentials
+```
 
-### Core Components
+## Architecture Overview
 
-**Dependency Management** (`check_python_version()`, `ensure_dependencies()`)
-- Auto-installs missing packages
-- Downloads spaCy language models (French/English fallback)
-- Validates Python version compatibility
+### Single-File Design Philosophy
+The entire scraper is contained in `portable_scraper.py` (~1500 lines) with three main sections:
+1. **Dependency Management** (lines 1-250): Self-installation logic
+2. **Core Extraction Engine** (lines 250-1100): NLP and pattern-based extraction
+3. **Scraping & Orchestration** (lines 1100-1500): URL crawling and coordination
 
-**Data Models** (`PersonInfo` dataclass)
-- Structured representation of extracted contact information
-- Fields: nom (nom complet), email, telephone, poste, source_url, confidence, created_at
+### Key Architectural Decisions
 
-**Database Integration** (`SimpleSupabaseManager`)
-- Simplified Supabase client wrapper
-- Handles connection and person data insertion
-- Graceful fallback if database unavailable
+**Intelligent Contact Extraction Pipeline:**
+```
+HTML Page → Profile Zones Detection → Element Extraction → Clustering → Validation → Person Objects
+```
 
-**Text Extraction** (`SimpleTextExtractor`)
-- Regex-based email and phone number extraction
-- spaCy-powered name entity recognition
-- Phone number normalization for French formats
+1. **Profile Zone Identification** (`identify_profile_zones`):
+   - Searches for sections with classes like "team", "staff", "contact"
+   - Validates zones contain both email AND (phone OR name context)
+   - Fallback: analyzes entire page in chunks if no specific zones found
 
-**Web Scraping** (`SimpleScraper`)
-- Respectful crawling with 1-second delays
-- Domain-restricted link following
-- BeautifulSoup HTML parsing
-- Duplicate prevention
+2. **Smart Clustering Strategy** (`cluster_by_proximity`):
+   - **Case 1**: Single unique email in zone → groups ALL elements together (handles scattered info)
+   - **Case 2**: Multiple emails → proximity-based clustering (handles team pages)
+   - Adaptive thresholds: email+other=500 chars, name+phone=800 chars
 
-### Key Features
+3. **Name Selection Scoring** (`validate_and_score_profiles`):
+   - Formula: `(distance/100) - (confidence * 10)`
+   - Prioritizes high-confidence names even if slightly farther from email
+   - Prevents extraction of section headings ("My Journey", "Our Team") as names
 
-- **Self-installing**: No manual dependency management required
-- **Portable**: Single Python file with embedded functionality
-- **Respectful crawling**: Implements delays and robots.txt compliance
-- **Dual storage**: Supabase cloud database + local JSON backup
-- **Multi-language support**: French/English spaCy models with fallback
-- **Interactive configuration**: User-friendly prompts for all settings
+### Data Models
+
+**PersonInfo** (dataclass):
+- `nom`: Full name (e.g., "Marie Dupont", "Jean-Pierre Martin")
+- `email`: Email address
+- `telephone`: Formatted phone number
+- `poste`: Job title/position
+- `source_url`: Source page URL
+- `confidence`: Score 0.0-1.0 based on extraction quality
+- `created_at`: ISO timestamp
+
+**ExtractedElement** (internal):
+- `type`: "email" | "phone" | "name"
+- `value`: Extracted text
+- `position`: Character position in page text
+- `html_position`: Position in HTML structure
+- `context`: Surrounding text (±50 chars)
+- `html_element`: Parent tag name
+- `confidence`: Extraction reliability score
+
+### Name Validation Logic
+
+**Multilingual Avoid-Words Filter** (~200 terms):
+- Form labels: "First Name", "Prénom", "Last Name", "Nom"
+- Job titles: "Developer", "Développeur", "Engineer"
+- Soft skills: "Team Player", "Collaborative", "Passionate"
+- Tech terms: "React", "Python", "Docker"
+- Portfolio sections: "My Journey", "My Projects", "Get Started"
+- Cities: "Paris", "London", "New York"
+
+**Name Pattern Matching**:
+- Requires 2+ words (firstname + lastname) unless prefixed (M., Mme, Dr)
+- Must match: `[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-z]+\s+[A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ][a-z]+`
+- Rejects: starts with digit, contains special chars, >4 words, <3 chars
+
+### Deduplication Strategy
+
+**Global Deduplication** (`deduplicate_persons`):
+- Groups profiles by email (case-insensitive)
+- For duplicates, scores each profile:
+  - Base: confidence value
+  - +0.5: Valid name (length>3, contains space)
+  - +0.2: Phone present
+- Keeps highest-scoring profile per email
+- Handles case: same person found on homepage + contact page
+
+### Language Detection
+
+**Supported Languages**: French (fr) + English (en)
+
+Detection order:
+1. HTML `lang` attribute (`<html lang="fr">` or `<html lang="en">`)
+2. Meta tags (`<meta name="language" content="fr">`)
+3. Content analysis: counts language indicators
+   - French: "équipe", "à propos", "société", "téléphone"
+   - English: "team", "about", "company", "phone"
+   - Threshold: ≥2 indicators of either language
+
+### Phone Number Handling
+
+**Supported Formats**:
+- French: `06 12 34 56 78`, `+33 6 12 34 56 78`, `01.23.45.67.89`
+- International: `+1 234 567 8900`, `+44 20 1234 5678`
+- Contextual: `Tel: 01 23 45 67 89`, `Phone: +33612345678`
+
+**Normalization**:
+- Converts to international format when possible
+- French mobile: `06...` → `+33 6...`
+- Formats with spaces: `+33 6 12 34 56 78`
+
+### File Organization
+
+**JSON Save Structure**:
+```
+saves/
+└── 2025/
+    └── 09-Septembre/
+        └── 30/
+            └── 14h30_example_com_scraping.json
+```
+
+Format: `[HHhMM]_[domain-slug]_scraping.json`
 
 ## Development Notes
 
-- The script is designed as a standalone executable for easy distribution
-- All configuration is handled through interactive prompts (no config files)
-- Error handling focuses on graceful degradation rather than hard failures
-- Text extraction uses conservative patterns to minimize false positives
-- Phone number handling specifically optimized for French formats but supports international numbers
+### Testing Extraction on New Sites
+
+When a site doesn't extract correctly, debug with:
+```python
+from portable_scraper import SimpleScraper
+scraper = SimpleScraper("https://example.com", max_pages=1)
+html = scraper.get_page_content("https://example.com")
+
+# Check language detection
+print(scraper.is_supported_language(html))
+
+# Check profile zones
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(html, 'html.parser')
+zones = scraper.extractor.identify_profile_zones(soup)
+print(f"Found {len(zones)} profile zones")
+
+# Check extracted elements
+for zone in zones:
+    elements = scraper.extractor.extract_elements_with_position(zone)
+    emails = [e for e in elements if e.type == 'email']
+    names = [e for e in elements if e.type == 'name']
+    print(f"Emails: {len(emails)}, Names: {len(names)}")
+```
+
+### Adding New Avoid-Words
+
+When false positives occur (e.g., "Creative Thinker" extracted as name):
+1. Locate `is_likely_name()` method in `IntelligentPersonExtractor`
+2. Add terms to appropriate category in `avoid_words` set
+3. Test with: `extractor.is_likely_name("Creative Thinker")` → should return False
+
+### Adjusting Clustering Behavior
+
+If names/emails not grouping correctly:
+- **Single person page**: Check `unique_emails` logic in `cluster_by_proximity` (line ~903)
+- **Team page**: Adjust proximity thresholds in `get_proximity_threshold` (line ~938)
+- **Debug positions**: Print `element.position` to see distance between email and name
+
+### spaCy Model Management
+
+The script auto-downloads models in this order:
+1. Try `fr_core_news_sm` (French, 17MB)
+2. Fallback to `en_core_web_sm` (English, 17MB)
+3. Multiple installation methods attempted (system, --user, --break-system-packages)
+
+If spaCy fails, extraction continues with regex-only (reduced name detection accuracy).
+
+### macOS Python 3.13+ Compatibility
+
+**PEP 668 Issue**: Homebrew Python 3.13+ prevents system-wide package installation.
+
+**Solutions implemented**:
+1. `setup_venv.sh`: Automated venv creation and activation
+2. `install_package()`: Tries multiple pip flags (--break-system-packages, --user)
+3. README instructions: Emphasize venv requirement for macOS users
+
+### Respectful Crawling
+
+- 1-second delay between pages (`time.sleep(1)`)
+- User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+- Domain-restricted: only follows links on same domain
+- Timeout: 10 seconds per page
+- Language filtering: skips non-FR/EN pages early
